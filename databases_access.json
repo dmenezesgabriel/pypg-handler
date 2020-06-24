@@ -1,0 +1,9 @@
+{
+    "database-test": {
+      "database": "postgres",
+      "host": "localhost",
+      "password": "postgres",
+      "port": 5555,
+      "user": "postgres"
+    }
+}

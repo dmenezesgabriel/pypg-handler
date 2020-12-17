@@ -1,65 +1,19 @@
-import json
+import pandas as pd
 import psycopg2
 import psycopg2.extras
-import pandas as pd
-
-
-def get_database_access(path):
-    """
-    Reads a file.
-
-    Expected dict format:
-
-    {
-        "database_name": {
-            "host": "database-db.host.net",
-            "user": "user",
-            "password": "1234",
-            "database": "database_name",
-            "port": 5432
-        },
-    }
-
-    Parameters
-    ----------
-    :path: recieves access_information.json path
-
-    Returns
-    ----------
-    A dictionary with databases access information
-    """
-    database_file_name = path
-    with open(database_file_name, "r") as database_file:
-        database_access = json.load(database_file)
-    return database_access
 
 
 class DatabaseHandler:
     """
-    Handler for execute queries in a given the database
+    Handler for execute queries in a given PostgreSQL database
     """
 
-    def __init__(self, access_information):
-        """Class atributes
-
-        Parameters
-        ----------
-        :access_information: databases access dictionary
-        {
-            "database_name": {
-                "host": "database-db.host.net",
-                "user": "user",
-                "password": "1234",
-                "database": "database_name",
-                "port": 5432
-            },
-        }
+    def __init__(self, database_uri):
         """
-        self._host = access_information["host"]
-        self._port = access_information.get("port", 5432)
-        self._user = access_information["user"]
-        self._password = access_information["password"]
-        self._database = access_information["database"]
+        Class atributes
+        :database_uri: postgresql://postgres:postgres@localhost:5432/postgres
+        """
+        self.database_uri = database_uri
         self._connection = self._connect()
 
     @property
@@ -70,45 +24,38 @@ class DatabaseHandler:
         return self._connection
 
     def _connect(self):
-        """Establish connection with the database
         """
-        connection_parameters = {
-            "host": self._host,
-            "port": self._port,
-            "dbname": self._database,
-            "user": self._user,
-            "password": self._password
-        }
-        return psycopg2.connect(
-            **connection_parameters, connect_timeout=10)
+        Establish connection with the database
+        """
+        return psycopg2.connect(self.database_uri, connect_timeout=10)
 
     def _reconnect(self):
-        """Reconnect to database, if connection is closed
+        """
+        Reconnect to database, if connection is closed
         """
         if self._connection.closed > 0:
             self._connection = self._connect()
 
     def close(self):
-        """Close the connection
+        """
+        Close the connection
         """
         self._connection.close()
 
     def cursor(self):
-        """Create cursors
-        """
+        """Create cursors"""
         return self.connection.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
 
     def db_connector(func):
         """
         Check the connection before making query,
         connect if disconnected
-
-        Parameters
-        ----------
         :func: Database related function which uses
-        DatabaseHandler connection
+        :return:DatabaseHandler connection
         """
+
         def with_connection(self, *args, **kwargs):
             self._reconnect()
             try:
@@ -117,23 +64,18 @@ class DatabaseHandler:
                 print(f"Error: {error}")
 
             return result
+
         return with_connection
 
     @db_connector
     def fetch(self, query, params=None, max_tries=5):
         """
         Fetch query results
-
-        Parameters
-        ----------
         :query: Database related function which uses
         DatabaseHandler connection
         :params: Query params
         :max_tries: Max number of query retries
-
-        Returns
-        ----------
-        Query results as a list of dicts
+        :return: Query results as a list of dicts
         """
         attempt_no = 0
         while attempt_no < max_tries:
@@ -152,17 +94,11 @@ class DatabaseHandler:
     def query_to_df(self, sql, params=None, max_tries=5):
         """
         Create a pandas DataFrame object from a query result
-
-        Parameters
-        ----------
         :sql: query statements
         :params: a list or a tuple of parameters that will
         be passed to the query execution
         :max_tries: number of query retries in the case of failure
-
-        Returns
-        ----------
-        Pandas DataFrame object
+        :return: Pandas DataFrame object
         """
         attempt_no = 0
         while attempt_no < max_tries:
@@ -179,14 +115,8 @@ class DatabaseHandler:
 def load_query(path) -> str:
     """
     Load query from .sql file
-
-    Parameters
-    ----------
     :query: file.sql path
-
-    Returns
-    ----------
-    String content of query file
+    :return: String content of query file
     """
     with open(path, "r") as query_file:
         return query_file.read()

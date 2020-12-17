@@ -1,2 +1,3 @@
-# python-database-handler
-Make queries with python!
+# Pypg Handler
+
+Query PostgreSQL like a pythonista

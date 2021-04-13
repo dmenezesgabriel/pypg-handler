@@ -67,6 +67,33 @@ class DatabaseHandler:
 
         return with_connection
 
+    # Commit changes
+    def commit(self):
+        """
+        Commit changes executed into database
+        """
+        self._connection.commit()
+
+    @db_connector
+    def execute(self, query, params=None, max_tries=5):
+        """
+        Execute statement
+        :query: Database related function which uses
+        DatabaseHandler connection
+        :params: Query params
+        :max_tries: Max number of query retries
+        """
+        attempt_no = 0
+        while attempt_no < max_tries:
+            attempt_no += 1
+            cursor = self.cursor()
+            try:
+                with self.connection:
+                    with cursor:
+                        return cursor.execute(query, params)
+            except Exception as error:
+                print(f"ERROR: In psycopg.cursor.execute(): {error}")
+
     @db_connector
     def fetch(self, query, params=None, max_tries=5):
         """
@@ -110,13 +137,3 @@ class DatabaseHandler:
                         return pd.read_sql_query(sql, self, params=params)
             except Exception as error:
                 print(f"Query to DataFrame error: {error}.")
-
-
-def load_query(path) -> str:
-    """
-    Load query from .sql file
-    :query: file.sql path
-    :return: String content of query file
-    """
-    with open(path, "r") as query_file:
-        return query_file.read()
